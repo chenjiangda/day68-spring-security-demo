@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                  http://www.springframework.org/schema/beans/spring-beans.xsd
+                  http://www.springframework.org/schema/mvc
+                  http://www.springframework.org/schema/mvc/spring-mvc.xsd
+                  http://www.springframework.org/schema/context
+                  http://www.springframework.org/schema/context/spring-context.xsd
+                          http://www.springframework.org/schema/security
+                          http://www.springframework.org/schema/security/spring-security.xsd">
+
+    <!--
+      ① 配置哪些链接可以放行(没有认证通过也可以访问的资源)
+      security="none"：没有权限，表示不具备任何权限都能访问，也就是谁都能访问
+      pattern="/login.html"：没有任何权限，可以访问login.html
+    -->
+    <security:http security="none" pattern="/js/**" />
+    <security:http security="none" pattern="/css/**" />
+    <!-- 设置：不需要权限就能直接访问我们自定义的登录页面 -->
+    <security:http security="none" pattern="/login.html" />
+
+
+    <!--
+        授权：
+            对http请求进行权限控制。
+                auto-config="true" 自动配置。框架会自动生成默认登录页面，并且提供默认的登录url(其实就是@RequestMapping映射) '/login',以及注销url '/logout'
+                use-expressions="true" 可以使用表达式，进行权限设置。
+                pattern="/**" 对所有的资源进行控制。
+                access="hasRole('ROLE_ADMIN')" 权限控制表达式。有这个'ROLE_ADMIN'角色的用户，就可以访问所有资源。否则，报403的错
+    -->
+    <security:http auto-config="true" use-expressions="true">
+        <!--<security:intercept-url pattern="/**" access="hasRole('ROLE_ADMIN')"></security:intercept-url>-->
+
+        <!--只要认证通过就可以访问-->
+        <security:intercept-url pattern="/index.html"  access="isAuthenticated()" />
+        <security:intercept-url pattern="/a.html"  access="isAuthenticated()" />
+
+        <!--登录并且拥有add权限就可以访问b.html页面-->
+        <security:intercept-url pattern="/b.html"  access="hasAuthority('add')" />
+
+        <!--登录并且拥有ROLE_ADMIN角色就可以访问c.html页面，
+            注意：此处虽然写的是ADMIN角色，框架会自动加上前缀ROLE_-->
+        <security:intercept-url pattern="/c.html"  access="hasRole('ROLE_ADMIN')" />
+
+        <!--登录并且拥有ROLE_ADMIN角色就可以访问d.html页面-->
+        <security:intercept-url pattern="/d.html"  access="hasRole('ABC')" />
+
+
+
+        <!--
+         login-page="/login.html" 指定自定义登录页
+         username-parameter="username" 指定自定义用户名参数  登录页中用户名表单的name
+         password-parameter="password" 指定自定义密码参数  登录页中密码表单的name
+         login-processing-url="/login.do"  指定处理请求的action名称 与登录页中的对应
+         default-target-url="/index.html" 指定登录成功后跳转的路径
+         authentication-failure-url="/login.html" 指定登录失败后跳转的路径
+         always-use-default-target="true" 任何操作权限失败就执行default-target-url指定的页面
+        -->
+        <security:form-login login-page="/login.html"
+                             username-parameter="username"
+                             password-parameter="password"
+                             login-processing-url="/login.do"
+                             default-target-url="/index.html"
+                             authentication-failure-url="/login.html"
+                             always-use-default-target="true"/>
+
+        <!--禁用csrf,默认开启-->
+        <security:csrf disabled="true"></security:csrf>
+
+        <!--
+          logout：退出登录
+          logout-url：退出登录操作对应的请求路径
+          logout-success-url：退出登录后的跳转页面
+          invalidate-session="true" 默认为true,用户在退出后Http session失效
+        -->
+        <security:logout logout-url="/logout.do" logout-success-url="/login.html" invalidate-session="true"/>
+
+
+    </security:http>
+
+    <!--
+      ③ 认证管理：定义登录账号和密码，并授予当前用户访问的角色或权限
+        （1）：将用户名和密码：当前用户具有的角色，写死到配置文件中（现在:入门）
+                security:user name="admin" :登录名
+                authorities="ROLE_ADMIN"   ：角色(ROLE_ADMIN),权限
+                password="admin"          ：密码
+         （2）：用户名和密码，当前用户具有的角色，从数据库中查询（后续）
+
+         password="admin":表示使用默认的bcrypt密码编码器进行校验登录。
+         password="{noop}admin":表示不实用任何密码编码器进行校验登录。也就是明文，无需加密
+    -->
+    <!--做认证-->
+    <security:authentication-manager>
+        <security:authentication-provider user-service-ref="userService">
+
+            <!--<security:user-service>
+                &lt;!&ndash; 也就是说用用户名admin和密码admin登录成功后会给你ROLE_ADMIN权限 &ndash;&gt;
+                <security:user name="admin" authorities="ROLE_ADMIN" password="{noop}admin"></security:user>
+            </security:user-service>-->
+
+            <!--指定密码加密策略-->
+            <security:password-encoder ref="passwordEncoder"></security:password-encoder>
+
+
+        </security:authentication-provider>
+    </security:authentication-manager>
+    
+    <context:component-scan base-package="com.atguigu" />
+
+    <mvc:annotation-driven/>
+
+    <!--配置密码加密对象-->
+    <bean id="passwordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
+
+    <!--开启注解方式权限控制-->
+    <security:global-method-security pre-post-annotations="enabled" />
+
+
+</beans>

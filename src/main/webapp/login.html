@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>登录</title>
+</head>
+<body>
+<!-- 自定义登录页，需要和默认登录页的要求一致，否则需要通过配置修改默认规则 -->
+<form action="/login.do" method="post">
+  username:<input type="text" name="username"><br>
+  password:<input type="password" name="password"><br>
+  <input type="submit" value="submit">
+
+  <!-- 禁用csrf,所以暂时不需要提供_csrf表单域的令牌值  后面会讲thymeleaf模板引擎，到时候可以很好的获取令牌 -->
+
+</form>
+</body>
+</html>
